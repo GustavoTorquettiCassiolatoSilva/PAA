@@ -1,80 +1,73 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <string.h>
 
-// Esse código não funciona bem o suficiente, será recriado
-
-// Comentários e explicações no final da página
-int mdc(int a, int b) {
-    if (a < 0) a = -a;
-    if (b < 0) b = -b;
-    while (b != 0) {
-        int t = a % b;
-        a = b;
-        b = t;
-    }
-    return a;
-}
-
-int main()
-{
+int main(void) {
     int E = 0, A = 0;
-    
-    // Recebe os valores da escala e acorde
-    while ((E < 3 || E > 100000) || (A < 3 || A > 100000) || A > E) {
-        scanf("%d %d", &E, &A);
-    }
-    
+
+    // Recebe os valores da escala e acorde, e caso seja maior maior ou menor que 2 entradas, finaliza o programa para evitar erros
+    if (scanf("%d %d", &E, &A) != 2) return 0;
+
     // Alocação dinâmica do vetor X na memória
     int *X = malloc(A * sizeof(int));
-    
-    // Vetor de distâncias entre pontos será o próprio X
-    int *Dist = malloc(A * sizeof(int));
-    
-    // Recebe as posições
-    for (int i = 0; i < A; i++) {
-        scanf("%d", &X[i]);
-        Dist[i] = 0;
-    }
+    // Recebe as posições no vetor X
+    for (int i = 0; i < A; i++) scanf("%d", &X[i]);
 
-    // Valor booleano utilizado para a resposta final
-    bool possible = true;
-    
-    // Valor das divisões
-    float div = (int)E/(int)A;
-    
-// LÓGICA
+    // Valor do número de divisões/blocos
+    int div = E / A;
 
-    // Calcula as distâncias entre os elementos e coloca elas no vetor Dist
-    for (int i = 0; i < A - 1; i++)
-    {
-        Dist[i] = X[i + 1] - X[i];
-    }
-    Dist[A - 1] = -((X[A - 1] - E) - X[0]);
+    // Vetor usado para marcar blocos ocupados
+    char *Blocos = malloc(A * sizeof(char));
 
-    // Calcula o mdc de todas as distâncias
-    int g = Dist[0];
-    for (int i = 1; i < A; ++i) {
-        g = mdc(g, Dist[i]);
-        if (g == 1) break; //Caso MDC retorne 1, parar
+    // Valor booleano utilizado para a resposta final (Se possivel, S, caso contrário, N)
+    int possible = 0;
+
+    // LÓGICA
+    // Testa todas as rotações possíveis de 0 até div-1 (pois após isso o algoritmo estaria se repetindo)
+    for (int x = 0; x < div; x++) {
+        memset(Blocos, 0, A); // Isso é necessário para resetar o vetor Blocos e iniciar a comparação novamente
+        int valido = 1;
+
+        // Passa por todas as A notas do acorde
+        for (int i = 0; i < A; i++) { 
+            int t = X[i] - x; // X[i] é a posição original da nota e x é o deslocamento atual 
+            if (t < 0) t += E; // Não é possível dar posição negativa, pois é um circulo
+            int pos = t / div; // Verifica qual bloco a nota está nessa rotação
+            if (Blocos[pos]) // Se já existe uma nota nesse bloco, quebra e dá como impossível.
+            { 
+                valido = 0; 
+                break; 
+            }
+            Blocos[pos] = 1; // Se não existe, adiciona 1 ao vetor de blocos.
+        }
+        // Ao final de todo o processo, se nessa rotação deu tudo certo, retorna true e quebra o algoritmo
+        if (valido) {
+            possible = 1;
+            break;
+        }
     }
 
     // Imprime se é possível ou não
-    if (g > 1) printf("S\n");
+    if (possible) printf("S\n");
     else printf("N\n");
 
     // Libera memória alocada dinamicamente
     free(X);
-    free(Dist);
-    
+    free(Blocos);
     return 0;
 }
 
 /* 
-Lógica: O algoritmo segue a lógica de que, para atingir o resultado desejado, todas as posições devem ter 
-um MDC igual e diferente de 1. Isso ocorre pois a existência do MDC à todas as posições significa
-a existência de simetria, em porções de tamanho multiplas do MDC
+Lógica: Como E é divisível por A, podemos dividir a escala em div (E/A) blocos iguais.
+Então, ao decorrer do código, é necessário verificar quantas notas existem por bloco.
+Caso algum bloco tenha uma quantidade diferente de 1, o valor booleano será falso, imprimindo "N", caso todos os blocos tenham somente 1 acorde, o valor retornado será true, imprimindo "S"
 
-A complexidade do código é de O(A log E), resultante do calculo dos MDCs, que itera A vezes uma 
-função de complexidade O(log E)
+E como a verificação é feita:
+Primeiro a escala é dividida em blocos iguais de tamanho div (pois após isso, a rotação se torna redundante), começando na posição 0.
+Depois esses blocos são rotacionados de 0 até div-1, e em cada rotação é verificado se todos contêm exatamente 1 nota.
+
+Caso após uma rotação completa, em algum momento ocorra a situação desejada (1 nota em cada bloco), o algoritmo se encerra e retorna verdadeiro. 
+Se após todo o algoritmo seja rodado, e todos os casos rotacionados, ainda não haver nenhuma situação onde todos os blocos somente contém 1 acorde, o caso é impossível, retornando falso.
+
+Complexidade: O(E), pois, na pior das hipóteses, ocorrerá div * A comparações, que é igual à E.
 */
